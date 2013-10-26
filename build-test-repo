@@ -75,14 +75,18 @@ sub commit {
         if $arg{commit_encoding};
 
     # record the description
-    my $head = $r->run( log => -1 => '--pretty=format:%H' );
+    my $head
+        = $arg{tag}
+        ? ( split / /, $r->run( 'show-ref', $arg{tag} ) )[0]
+        : $r->run( log => -1 => '--pretty=format:%H' );
     return if exists $seen{$head};
-    $seen{$head} = $arg{comment};
+    $seen{ $arg{tag} || $head } = $arg{comment};
 
     # show the raw commit for --verbose
     return if !$option{verbose};
     print "---- $head ", '-' x 32, "\n";
-    print "$_\n" for $r->run( qw( cat-file commit ), $head );
+    print "$_\n"
+        for $r->run( 'cat-file', $arg{tag} ? 'tag' : 'commit', $head );
     print "\n";
 }
 
@@ -147,8 +151,10 @@ commit(
     }
 );
 
-commit(    # actually, a tag
-    code => sub {
+commit(
+    tag     => 'v1.0.0',
+    comment => 'gpgsig',
+    code    => sub {
         $r->run( tag => -m => 'signed tag', -u => $keyid, -s => 'v1.0.0' );
     }
 );
@@ -164,9 +170,15 @@ commit(
     }
 );
 
-commit(                                                       # a tag
-    code => sub {
-        $r->run( tag => -m => 'signed tag', -u => $keyid, -s => 'v1.0.1' );
+commit(
+    tag     => 'v1.0.1',
+    comment => 'utf-8 message, gpgsig',
+    code    => sub {
+        $r->run(
+            tag => -m => 'こんにちは',
+            -u  => $keyid,
+            -s  => 'v1.0.1'
+        );
     }
 );
 
@@ -183,8 +195,10 @@ commit(
 );
 
 # signed tag
-commit(    # no commit
-    code => sub {
+commit(
+    tag     => 'v1.0.2',
+    comment => 'gpgsig',
+    code    => sub {
         $r->run( tag => -m => 'signed tag', -u => $keyid, -s => 'v1.0.2' );
     }
 );
@@ -199,9 +213,10 @@ commit(
 );
 
 # signed tag
-commit(    # no commit
+commit(
+    tag     => 'v1.0.3',
     comment => 'gpgsig',
-    code => sub {
+    code    => sub {
         $r->run( tag => -m => 'signed tag', -u => $keyid, -s => 'v1.0.3' );
     }
 );
