@@ -11,11 +11,10 @@ use Encode;
 use utf8;
 
 # command-line options
-my %option = ( bundle => 'test.bundle' );
-GetOptions( \%option, 'verbose', 'gitk', 'bundle=s', 'force' )
-    or die "Usage: $0 [ --verbose ] [ --gitk ]\n";
+GetOptions( \my %option, 'verbose', 'gitk', 'bundle=s', 'force' )
+    or die "Usage: $0 [--verbose] [--gitk] [--bundle=<file>] [--force]\n";
 
-$option{bundle} = File::Spec->rel2abs( $option{bundle} );
+$option{bundle} &&= File::Spec->rel2abs( $option{bundle} );
 
 # check if we have a recent enough git
 my $version = Git::Repository->version;
@@ -298,6 +297,6 @@ if( $option{gitk} ) {
 }
 
 # bundle
-if( !-e $option{bundle} || $option{force} ) {
+if ( $option{bundle} && ( !-e $option{bundle} || $option{force} ) ) {
     $r->run( bundle => create => $option{bundle} => '--all' );
 }
