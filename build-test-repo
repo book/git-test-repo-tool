@@ -194,7 +194,6 @@ commit(
     }
 );
 
-# signed tag
 commit(
     tag     => 'v1.0.2',
     comment => 'gpgsig',
@@ -203,7 +202,6 @@ commit(
     }
 );
 
-# some basic commit
 commit(
     comment => 'basic commit',
     content => "bonjour\n",
@@ -212,7 +210,6 @@ commit(
     }
 );
 
-# signed tag
 commit(
     tag     => 'v1.0.3',
     comment => 'gpgsig',
@@ -221,14 +218,12 @@ commit(
     }
 );
 
-# mergetag
 $r->run( checkout => 'master' );
 commit(
     comment => 'mergetag',
     code    => sub { $r->run( merge => -s => 'ours', 'v1.0.0' ); }
 );
 
-# mergetag + encoding
 commit(
     comment         => 'iso-8859-1 message, mergetag',
     commit_encoding => 'iso-8859-1',
@@ -240,7 +235,6 @@ commit(
     }
 );
 
-# mergetag + gpgsig
 commit(
     comment => 'gpgsig, mergetag',
     code    => sub {
@@ -249,7 +243,6 @@ commit(
     }
 );
 
-# mergetag + gpgsig + encoding
 commit(
     comment         => 'iso-8859-1 message, gpgsig, mergetag',
     commit_encoding => 'iso-8859-1',
