@@ -297,6 +297,11 @@ if( $option{gitk} ) {
 }
 
 # bundle
-if ( $option{bundle} && ( !-e $option{bundle} || $option{force} ) ) {
-    $r->run( bundle => create => $option{bundle} => '--all' );
+if ( $option{bundle} ) {
+    if( !-e $option{bundle} || $option{force} ) {
+        $r->run( bundle => create => $option{bundle} => '--all' );
+    }
+    else {
+        die "File $option{bundle} already exists, use --force to overwrite\n";
+    }
 }
