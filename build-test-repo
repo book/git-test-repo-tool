@@ -32,7 +32,7 @@ my $keyid = '7621C403';
 
 # setup a test repository
 my $r = test_repository( git => { quiet => 1 } );
-my $tick = '1382657940';
+my $tick = time - 3600;
 $ENV{GIT_AUTHOR_DATE}    = sprintf "%d +0200", $tick;
 $ENV{GIT_COMMITTER_DATE} = sprintf "%d +0200", $tick + 3600;
 $ENV{GIT_AUTHOR_NAME}  = $ENV{GIT_COMMITTER_NAME}  = 'Philippe Bruhat (BooK)';
