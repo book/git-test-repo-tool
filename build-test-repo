@@ -32,154 +32,209 @@ my $keyid = '7621C403';
 
 # setup a test repository
 my $r = test_repository( git => { quiet => 1 } );
-my $tick = time - 3600;
-$ENV{GIT_AUTHOR_DATE}    = sprintf "%d +0200", $tick;
-$ENV{GIT_COMMITTER_DATE} = sprintf "%d +0200", $tick + 3600;
-$ENV{GIT_AUTHOR_NAME}  = $ENV{GIT_COMMITTER_NAME}  = 'Philippe Bruhat (BooK)';
-$ENV{GIT_AUTHOR_EMAIL} = $ENV{GIT_COMMITTER_EMAIL} = 'book@cpan.org';
+
+# some settings
+$ENV{GIT_AUTHOR_DATE}  = my $tick = time - 3600;
+$ENV{GIT_AUTHOR_NAME}  = $ENV{GIT_COMMITTER_NAME}  = 'Example Author';
+$ENV{GIT_AUTHOR_EMAIL} = $ENV{GIT_COMMITTER_EMAIL} = 'author@example.com';
 
 ### helper subs
 
 # put content in a file, with an optional encoding
+my $file = File::Spec->catfile( $r->work_tree => 'file.txt' );
 sub update_file {
-    my ( $file, $content, $encoding ) = @_;
+    my ( $content, $encoding ) = @_;
     $encoding ||= 'UTF-8';
     open my $fh, ">:encoding($encoding)", $file or die "Can't open $file: $!";
     print {$fh} $content;
     close $fh;
+    $r->run( add => $file );
 }
 
 # enable the verbose option
 my %seen;
-sub tick {
+sub commit {
+    my %arg = @_;
+
+    # update the file if needed
+    if ( $arg{content} ) {
+        update_file( $arg{content}, $arg{content_encoding} );
+    }
+
+    # click a tick
     $tick++;
     $ENV{GIT_AUTHOR_DATE} = "$tick +0200";
+
+    # execute the coderef
+    $r->run( config => 'i18n.commitencoding', $arg{commit_encoding} )
+        if $arg{commit_encoding};
+    $arg{code}->();
+    $r->run( config => qw( --unset i18n.commitencoding iso-8859-1 ) )
+        if $arg{commit_encoding};
+
+    # show the raw commit for --verbose
+    my $head = $r->run( log => -1 => '--pretty=format:%H' );
+    return if $seen{$head}++;
     return if !$option{verbose};
-    my ($HEAD) = $r->run( log => '--pretty=format:%H' );
-    return if $seen{$HEAD}++;
-    print "---- $HEAD ", '-' x 32, "\n";
-    print "$_\n" for $r->run( qw( cat-file commit ), $HEAD );
+    print "---- $head ", '-' x 32, "\n";
+    print "$_\n" for $r->run( qw( cat-file commit ), $head );
     print "\n";
 }
 
+
 ### main program
 
-my ( $head, $tree, $cmd );
-
-my $hello = File::Spec->catfile( $r->work_tree => 'file.txt' );
-
 # empty tree
-$tree = $r->run( mktree => { input => '' } );
-$head = $r->run( 'commit-tree', $tree, -m => 'empty tree' );
-$r->run( 'update-ref', 'refs/heads/master' => $head );
-tick;
+commit(
+    code => sub {
+        my $tree = $r->run( mktree => { input => '' } );
+        my $head = $r->run( 'commit-tree', $tree, -m => 'empty tree' );
+        $r->run( 'update-ref', 'refs/heads/master' => $head );
+    }
+);
 
 # simple commit
-update_file( $hello => "Hello\n" );
-$r->run( add    => $hello );
-$r->run( commit => -m => 'hello (en)' );
-tick;
-$head = $r->run( log => '--pretty=format:%H' );
+commit(
+    content => "Hello\n",
+    code    => sub {
+        $r->run( commit => -m => 'hello (en)' );
+    }
+);
 
 # make an encoding branch
 $r->run( branch => 'encoding' );
 
 # commit with utf8 blob and message
-update_file( $hello => "こんにちは\n" );
-$r->run( commit => -am => 'こんにちは (ja)' );
-tick;
+commit(
+    content => "こんにちは\n",
+    code    => sub { $r->run( commit => -am => 'こんにちは (ja)' ); },
+);
 
 # gpgsig
-update_file( $hello => "hej\n" );
-$r->run( add    => $hello );
-$r->run( commit => "-S$keyid" => -m => 'hej (da)' );
-tick;
+commit(
+    content => "hej\n",
+    code    => sub {
+        $r->run( commit => "-S$keyid" => -m => 'hej (da)' );
+    }
+);
 
 # encoding shift-jis
 $r->run( checkout => 'encoding' );
-update_file( $hello => "こんにちは\n", 'shift-jis' );
-$r->run( config => qw( i18n.commitencoding shift-jis ) );
-$cmd = $r->command( commit => '-aF-' );
-print { $cmd->stdin } encode( 'shift-jis', 'こんにちは (ja)' );
-$cmd->close;
-tick;
+commit(
+    content  => "こんにちは\n",
+    content_encoding => 'shift-jis',
+    commit_encoding => 'shift-jis',
+    code     => sub {
+        my $cmd = $r->command( commit => '-aF-' );
+        print { $cmd->stdin } encode( 'shift-jis', 'こんにちは (ja)' );
+        $cmd->close;
+    }
+);
 
 # encoding iso-8859-1
-$r->run( config => qw( i18n.commitencoding iso-8859-1 ) );
-update_file( $hello => 'halló' );
-$cmd = $r->command( commit => '-aF-' );
-print { $cmd->stdin } encode( 'iso-8859-1', 'halló (is)' );
-$cmd->close;
-tick;
+commit(
+    content => "halló\n", # utf-8
+    commit_encoding => 'iso-8859-1',
+    code    => sub {
+        my $cmd = $r->command( commit => '-aF-' );
+        print { $cmd->stdin } encode( 'iso-8859-1', 'halló (is)' );
+        $cmd->close;
+    }
+);
 
 # signed tag
-$r->run( tag => -m => 'signed tag', -u => $keyid, -s => 'v1.0.0' );
-tick;
+commit(    # actually, no commit
+    code => sub {
+        $r->run( tag => -m => 'signed tag', -u => $keyid, -s => 'v1.0.0' );
+    }
+);
 
 # encoding
-update_file( $hello => 'góður dagur' );
-$r->run( add => $hello );
-$cmd = $r->command( commit => '-aF-' );
-print { $cmd->stdin } encode( 'iso-8859-1', 'góður dagur (is)' );
-$cmd->close;
-tick;
+commit(
+    content => "góður dagur\n", # utf-8
+    commit_encoding => 'iso-8859-1',
+    code    => sub {
+        my $cmd = $r->command( commit => '-aF-' );
+        print { $cmd->stdin } encode( 'iso-8859-1', 'góður dagur (is)' );
+        $cmd->close;
+    }
+);
 
 # signed tag
-$r->run( tag => -m => 'signed tag', -u => $keyid, -s => 'v1.0.1' );
-tick;
+commit(    # actually, no commit
+    code => sub {
+        $r->run( tag => -m => 'signed tag', -u => $keyid, -s => 'v1.0.1' );
+    }
+);
 
 # gpgsig + encoding
-update_file( $hello => 'olá', 'iso-8859-1' );
-$cmd = $r->command( commit => '-aF-' => "-S$keyid" );
-print { $cmd->stdin } encode( 'iso-8859-1', 'olá (pt)' );
-$cmd->close;
-tick;
+commit(
+    content  => 'olá',
+    content_encoding => 'iso-8859-1',
+    commit_encoding => 'iso-8859-1',
+    code     => sub {
+        my $cmd = $r->command( commit => '-aF-' => "-S$keyid" );
+        print { $cmd->stdin } encode( 'iso-8859-1', 'olá (pt)' );
+        $cmd->close;
+    }
+);
 
-$r->run( config => qw( --unset i18n.commitencoding iso-8859-1 ) );
 
 # signed tag
-$r->run( tag => -m => 'signed tag', -u => $keyid, -s => 'v1.0.2' );
-tick;
+commit( # no commit
+    code => sub {
+        $r->run( tag => -m => 'signed tag', -u => $keyid, -s => 'v1.0.2' );
+    }
+);
 
 # some basic commit
-update_file( $hello => 'bonjour' );
-$r->run( add => $hello );
-$r->run( commit => -m => 'bonjour (fr)' );
-tick;
+commit(
+    content => "bonjour\n",
+    code    => sub {
+        $r->run( commit => -m => 'bonjour (fr)' );
+    }
+);
 
 # signed tag
-$r->run( tag => -m => 'signed tag', -u => $keyid, -s => 'v1.0.3' );
-tick;
+commit(
+    code => sub {
+        $r->run( tag => -m => 'signed tag', -u => $keyid, -s => 'v1.0.3' );
+    }
+);
 
 # mergetag
 $r->run( checkout => 'master' );
-$r->run( merge => -s => 'ours', 'v1.0.0' );
-tick;
+commit( code => sub { $r->run( merge => -s => 'ours', 'v1.0.0' ); } );
 
 # mergetag + encoding
-$r->run( config => qw( i18n.commitencoding iso-8859-1 ) );
-$r->run( merge => -s => 'ours', '--no-commit', 'v1.0.1' );
-$cmd = $r->command( commit => '-F-' );
-print { $cmd->stdin } encode( 'iso-8859-1', 'dobrý den (cs)' );
-$cmd->close;
-tick;
-
-$r->run( config => qw( --unset i18n.commitencoding iso-8859-1 ) );
+commit(
+    commit_encoding => 'iso-8859-1',
+    code            => sub {
+        $r->run( merge => -s => 'ours', '--no-commit', 'v1.0.1' );
+        my $cmd = $r->command( commit => '-F-' );
+        print { $cmd->stdin } encode( 'iso-8859-1', 'dobrý den (cs)' );
+        $cmd->close;
+    }
+);
 
 # mergetag + gpgsig
-$r->run( merge => -s => 'ours', '--no-commit', 'v1.0.2' );
-$r->run( commit => -am => 'bom dia', "-S$keyid" );
-tick;
+commit(
+    code => sub {
+        $r->run( merge => -s => 'ours', '--no-commit', 'v1.0.2' );
+        $r->run( commit => -am => 'bom dia', "-S$keyid" );
+    }
+);
 
 # mergetag + gpgsig + encoding
-$r->run( config => qw( i18n.commitencoding iso-8859-1 ) );
-$r->run( merge => -s => 'ours', '--no-commit', 'v1.0.3' );
-$cmd = $r->command( commit => '-aF-' => "-S$keyid" );
-print { $cmd->stdin } encode( 'iso-8859-1', 'buen día (es)' );
-$cmd->close;
-tick;
-
-$r->run( config => qw( --unset i18n.commitencoding iso-8859-1 ) );
+commit(
+    commit_encoding => 'iso-8859-1',
+    code            => sub {
+        $r->run( merge => -s => 'ours', '--no-commit', 'v1.0.3' );
+        my $cmd = $r->command( commit => '-aF-' => "-S$keyid" );
+        print { $cmd->stdin } encode( 'iso-8859-1', 'buen día (es)' );
+        $cmd->close;
+    }
+);
 
 ### final steps
 
