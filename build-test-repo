@@ -81,8 +81,8 @@ $r->run( commit => -m => 'hello (en)' );
 tick;
 $head = $r->run( log => '--pretty=format:%H' );
 
-# make a latin-1 branch
-$r->run( branch => 'latin-1' );
+# make an encoding branch
+$r->run( branch => 'encoding' );
 
 # commit with utf8 blob and message
 update_file( $hello => "こんにちは\n" );
@@ -95,8 +95,16 @@ $r->run( add    => $hello );
 $r->run( commit => "-S$keyid" => -m => 'hej (da)' );
 tick;
 
-# encoding
-$r->run( checkout => 'latin-1' );
+# encoding shift-jis
+$r->run( checkout => 'encoding' );
+update_file( $hello => "こんにちは\n", 'shift-jis' );
+$r->run( config => qw( i18n.commitencoding shift-jis ) );
+$cmd = $r->command( commit => '-aF-' );
+print { $cmd->stdin } encode( 'shift-jis', 'こんにちは (ja)' );
+$cmd->close;
+tick;
+
+# encoding iso-8859-1
 $r->run( config => qw( i18n.commitencoding iso-8859-1 ) );
 update_file( $hello => 'halló' );
 $cmd = $r->command( commit => '-aF-' );
