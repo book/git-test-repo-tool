@@ -64,19 +64,22 @@ sub tick {
 
 ### main program
 
+my ( $head, $tree, $cmd );
+
+my $hello = File::Spec->catfile( $r->work_tree => 'file.txt' );
+
 # empty tree
-my $tree = $r->run( mktree => { input => '' } );
-my $HEAD = $r->run( 'commit-tree', $tree, -m => 'empty tree' );
-$r->run( 'update-ref', 'refs/heads/master' => $HEAD );
+$tree = $r->run( mktree => { input => '' } );
+$head = $r->run( 'commit-tree', $tree, -m => 'empty tree' );
+$r->run( 'update-ref', 'refs/heads/master' => $head );
 tick;
 
 # simple commit
-my $hello = File::Spec->catfile( $r->work_tree => 'file.txt' );
 update_file( $hello => "Hello\n" );
 $r->run( add    => $hello );
 $r->run( commit => -m => 'hello (en)' );
 tick;
-$HEAD = $r->run( log => '--pretty=format:%H' );
+$head = $r->run( log => '--pretty=format:%H' );
 
 # make a latin-1 branch
 $r->run( branch => 'latin-1' );
@@ -96,7 +99,7 @@ tick;
 $r->run( checkout => 'latin-1' );
 $r->run( config => qw( i18n.commitencoding iso-8859-1 ) );
 update_file( $hello => 'halló' );
-my $cmd = $r->command( commit => '-aF-' );
+$cmd = $r->command( commit => '-aF-' );
 print { $cmd->stdin } encode( 'iso-8859-1', 'halló (is)' );
 $cmd->close;
 tick;
