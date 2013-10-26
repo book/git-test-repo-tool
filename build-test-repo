@@ -52,7 +52,7 @@ sub update_file {
     $r->run( add => $file );
 }
 
-# enable the verbose option
+# do the bookkeeping around the commit/tag creation
 my %seen;
 sub commit {
     my %arg = @_;
@@ -73,29 +73,31 @@ sub commit {
     $r->run( config => qw( --unset i18n.commitencoding iso-8859-1 ) )
         if $arg{commit_encoding};
 
-    # show the raw commit for --verbose
+    # record the description
     my $head = $r->run( log => -1 => '--pretty=format:%H' );
-    return if $seen{$head}++;
+    return if exists $seen{$head};
+    $seen{$head} = $arg{comment};
+
+    # show the raw commit for --verbose
     return if !$option{verbose};
     print "---- $head ", '-' x 32, "\n";
     print "$_\n" for $r->run( qw( cat-file commit ), $head );
     print "\n";
 }
 
-
 ### main program
 
-# empty tree
 commit(
-    code => sub {
+    comment => 'empty tree',
+    code    => sub {
         my $tree = $r->run( mktree => { input => '' } );
         my $head = $r->run( 'commit-tree', $tree, -m => 'empty tree' );
         $r->run( 'update-ref', 'refs/heads/master' => $head );
     }
 );
 
-# simple commit
 commit(
+    comment => 'basic commit',
     content => "Hello\n",
     code    => sub {
         $r->run( commit => -m => 'hello (en)' );
@@ -105,84 +107,82 @@ commit(
 # make an encoding branch
 $r->run( branch => 'encoding' );
 
-# commit with utf8 blob and message
 commit(
+    comment => 'utf-8 content, utf-8 message',
     content => "こんにちは\n",
     code    => sub { $r->run( commit => -am => 'こんにちは (ja)' ); },
 );
 
-# gpgsig
 commit(
+    comment => 'gpgsig',
     content => "hej\n",
     code    => sub {
         $r->run( commit => "-S$keyid" => -m => 'hej (da)' );
     }
 );
 
-# encoding shift-jis
+# now work in the encoding branch
 $r->run( checkout => 'encoding' );
 commit(
-    content  => "こんにちは\n",
+    comment          => 'shift-jis content, shift-jis message',
+    content          => "こんにちは\n",
     content_encoding => 'shift-jis',
-    commit_encoding => 'shift-jis',
-    code     => sub {
+    commit_encoding  => 'shift-jis',
+    code             => sub {
         my $cmd = $r->command( commit => '-aF-' );
         print { $cmd->stdin } encode( 'shift-jis', 'こんにちは (ja)' );
         $cmd->close;
     }
 );
 
-# encoding iso-8859-1
 commit(
-    content => "halló\n", # utf-8
+    comment         => 'utf-8 content, isi-8859-1 message',
+    content         => "halló\n",                            # utf-8
     commit_encoding => 'iso-8859-1',
-    code    => sub {
+    code            => sub {
         my $cmd = $r->command( commit => '-aF-' );
         print { $cmd->stdin } encode( 'iso-8859-1', 'halló (is)' );
         $cmd->close;
     }
 );
 
-# signed tag
-commit(    # actually, no commit
+commit(    # actually, a tag
     code => sub {
         $r->run( tag => -m => 'signed tag', -u => $keyid, -s => 'v1.0.0' );
     }
 );
 
-# encoding
 commit(
-    content => "góður dagur\n", # utf-8
+    comment         => 'utf-8 content, iso-8859-1 message',
+    content         => "góður dagur\n",                     # utf-8
     commit_encoding => 'iso-8859-1',
-    code    => sub {
+    code            => sub {
         my $cmd = $r->command( commit => '-aF-' );
         print { $cmd->stdin } encode( 'iso-8859-1', 'góður dagur (is)' );
         $cmd->close;
     }
 );
 
-# signed tag
-commit(    # actually, no commit
+commit(                                                       # a tag
     code => sub {
         $r->run( tag => -m => 'signed tag', -u => $keyid, -s => 'v1.0.1' );
     }
 );
 
-# gpgsig + encoding
 commit(
-    content  => 'olá',
+    comment          => 'utf-8 content, iso-8859-1 message, gpgsig',
+    content          => 'olá',
     content_encoding => 'iso-8859-1',
-    commit_encoding => 'iso-8859-1',
-    code     => sub {
+    commit_encoding  => 'iso-8859-1',
+    code             => sub {
         my $cmd = $r->command( commit => '-aF-' => "-S$keyid" );
         print { $cmd->stdin } encode( 'iso-8859-1', 'olá (pt)' );
         $cmd->close;
     }
 );
 
-
 # signed tag
-commit( # no commit
+commit(    # no commit
     code => sub {
         $r->run( tag => -m => 'signed tag', -u => $keyid, -s => 'v1.0.2' );
     }
@@ -190,6 +190,7 @@ commit( # no commit
 
 # some basic commit
 commit(
+    comment => 'basic commit',
     content => "bonjour\n",
     code    => sub {
         $r->run( commit => -m => 'bonjour (fr)' );
@@ -197,7 +198,8 @@ commit(
 );
 
 # signed tag
-commit(
+commit(    # no commit
+    comment => 'gpgsig',
     code => sub {
         $r->run( tag => -m => 'signed tag', -u => $keyid, -s => 'v1.0.3' );
     }
@@ -205,10 +207,14 @@ commit(
 
 # mergetag
 $r->run( checkout => 'master' );
-commit( code => sub { $r->run( merge => -s => 'ours', 'v1.0.0' ); } );
+commit(
+    comment => 'mergetag',
+    code    => sub { $r->run( merge => -s => 'ours', 'v1.0.0' ); }
+);
 
 # mergetag + encoding
 commit(
+    comment         => 'iso-8859-1 message, mergetag',
     commit_encoding => 'iso-8859-1',
     code            => sub {
         $r->run( merge => -s => 'ours', '--no-commit', 'v1.0.1' );
@@ -220,7 +226,8 @@ commit(
 
 # mergetag + gpgsig
 commit(
-    code => sub {
+    comment => 'gpgsig, mergetag',
+    code    => sub {
         $r->run( merge => -s => 'ours', '--no-commit', 'v1.0.2' );
         $r->run( commit => -am => 'bom dia', "-S$keyid" );
     }
@@ -228,6 +235,7 @@ commit(
 
 # mergetag + gpgsig + encoding
 commit(
+    comment         => 'iso-8859-1 message, gpgsig, mergetag',
     commit_encoding => 'iso-8859-1',
     code            => sub {
         $r->run( merge => -s => 'ours', '--no-commit', 'v1.0.3' );
