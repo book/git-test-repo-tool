@@ -273,7 +273,18 @@ README
     print $fh "    $_\n"
         for map { s/(([a-f0-9]{40})(?: \([^)]+\))?) .*/$1 $seen{$2}/g; $_ }
         @readme;
+    print {$fh} << 'README';
+
+Here's the list of the references in the repository,
+with the details related to each of the annotated tags:
+
+README
+    print $fh "    $_\n" for
+        map { s:refs/tags/(.*):refs/tags/$1 $seen{$1}:; $_ }
+        $r->run( qw( show-ref ) );
+    print $fh "\n";
     close $fh;
+
     $r->run( add => 'README' );
     $r->run( commit => -am => 'add a README' );
 }
