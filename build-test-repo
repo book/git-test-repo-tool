@@ -129,13 +129,12 @@ commit(
 # now work in the encoding branch
 $r->run( checkout => 'encoding' );
 commit(
-    comment          => 'shift-jis content, shift-jis message',
-    content          => "こんにちは\n",
-    content_encoding => 'shift-jis',
-    commit_encoding  => 'shift-jis',
-    code             => sub {
+    comment         => 'utf-8 content, iso-8859-1 message',
+    content         => "góður dagur\n",                     # utf-8
+    commit_encoding => 'iso-8859-1',
+    code            => sub {
         my $cmd = $r->command( commit => '-aF-' );
-        print { $cmd->stdin } encode( 'shift-jis', 'こんにちは (ja)' );
+        print { $cmd->stdin } encode( 'iso-8859-1', 'góður dagur (is)' );
         $cmd->close;
     }
 );
@@ -160,12 +159,13 @@ commit(
 );
 
 commit(
-    comment         => 'utf-8 content, iso-8859-1 message',
-    content         => "góður dagur\n",                     # utf-8
-    commit_encoding => 'iso-8859-1',
-    code            => sub {
+    comment          => 'shift-jis content, shift-jis message',
+    content          => "こんにちは\n",
+    content_encoding => 'shift-jis',
+    commit_encoding  => 'shift-jis',
+    code             => sub {
         my $cmd = $r->command( commit => '-aF-' );
-        print { $cmd->stdin } encode( 'iso-8859-1', 'góður dagur (is)' );
+        print { $cmd->stdin } encode( 'shift-jis', 'こんにちは (ja)' );
         $cmd->close;
     }
 );
