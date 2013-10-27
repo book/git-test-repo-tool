@@ -11,8 +11,8 @@ use Encode;
 use utf8;
 
 # command-line options
-GetOptions( \my %option, 'verbose', 'gitk', 'bundle=s', 'force' )
-    or die "Usage: $0 [--verbose] [--gitk] [--bundle=<file>] [--force]\n";
+GetOptions( \my %option, 'verbose', 'gitk', 'bundle=s', 'force', 'readme' )
+    or die "Usage: $0 [--verbose] [--gitk] [--bundle=<file>] [--force] [--readme]\n";
 
 $option{bundle} &&= File::Spec->rel2abs( $option{bundle} );
 
@@ -285,7 +285,13 @@ README
     close $fh;
 
     $r->run( add => 'README' );
-    $r->run( commit => -am => 'add a README' );
+    $r->run( commit => -am => 'add the README' );
+
+    if ( $option{readme} ) {
+        open $fh, '<', File::Spec->catfile( $r->work_tree, 'README' );
+        print <$fh>;
+        close $fh;
+    }
 }
 
 # gitk
