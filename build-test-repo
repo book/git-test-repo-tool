@@ -260,7 +260,7 @@ commit(
 # README
 {
     my @readme = $r->run( log => qw( --graph --pretty=oneline --decorate ) );
-    open my $fh, '>', File::Spec->catfile( $r->work_tree, 'README' );
+    open my $fh, '>', File::Spec->catfile( $r->work_tree, 'README.md' );
     print {$fh} << 'README';
 git-test-repository
 ===================
@@ -295,11 +295,11 @@ README
     print $fh "\n";
     close $fh;
 
-    $r->run( add => 'README' );
+    $r->run( add => 'README.md' );
     $r->run( commit => -am => 'add the README' );
 
     if ( $option{readme} ) {
-        open $fh, '<', File::Spec->catfile( $r->work_tree, 'README' );
+        open $fh, '<', File::Spec->catfile( $r->work_tree, 'README.md' );
         print <$fh>;
         close $fh;
     }
