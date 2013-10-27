@@ -34,7 +34,7 @@ my $r = test_repository( git => { quiet => 1 } );
 
 # some settings
 $r->run( config => qw( i18n.commitencoding utf-8 ) );
-$ENV{GIT_AUTHOR_DATE} = my $tick = time - 3600;
+$ENV{GIT_AUTHOR_DATE} = time - 3600;
 $ENV{GIT_COMMITTER_DATE} = time;
 $ENV{GIT_AUTHOR_NAME}    = $ENV{GIT_COMMITTER_NAME} = 'Example Author';
 $ENV{GIT_AUTHOR_EMAIL}   = $ENV{GIT_COMMITTER_EMAIL} = 'author@example.com';
@@ -43,6 +43,7 @@ $ENV{GIT_AUTHOR_EMAIL}   = $ENV{GIT_COMMITTER_EMAIL} = 'author@example.com';
 
 # put content in a file, with an optional encoding
 my $file = File::Spec->catfile( $r->work_tree => 'file.txt' );
+
 sub update_file {
     my ( $content, $encoding ) = @_;
     $encoding ||= 'UTF-8';
@@ -63,8 +64,7 @@ sub commit {
     }
 
     # click a tick
-    $tick++;
-    $ENV{GIT_AUTHOR_DATE} = $tick;
+    $ENV{GIT_AUTHOR_DATE}++;
 
     # execute the coderef
     $r->run( config => 'i18n.commitencoding', $arg{commit_encoding} )
