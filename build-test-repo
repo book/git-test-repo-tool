@@ -305,14 +305,6 @@ README
     }
 }
 
-# gitk
-if( $option{gitk} ) {
-    my $home = getcwd();
-    chdir $r->work_tree;
-    `gitk --all --date-order`;
-    chdir $home;
-}
-
 # bundle
 if ( $option{bundle} ) {
     if( !-e $option{bundle} || $option{force} ) {
@@ -322,3 +314,12 @@ if ( $option{bundle} ) {
         die "File $option{bundle} already exists, use --force to overwrite\n";
     }
 }
+
+# gitk
+if ( $option{gitk} ) {
+    my $home = getcwd();
+    chdir $r->work_tree;
+    `gitk --all --date-order`;
+    chdir $home;
+}
+
