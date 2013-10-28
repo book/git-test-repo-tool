@@ -11,8 +11,12 @@ use Encode;
 use utf8;
 
 # command-line options
-GetOptions( \my %option, 'verbose', 'gitk', 'bundle=s', 'force', 'readme' )
-    or die "Usage: $0 [--verbose] [--gitk] [--bundle=<file>] [--force] [--readme]\n";
+my %option = (
+   remote => 'git@github.com:book/git-test-repository.git',
+);
+GetOptions( \%option, 'verbose', 'gitk', 'bundle=s', 'force', 'readme', 'remote=s', 'push' )
+    or die "Usage: $0 [--verbose] [--gitk] [--bundle=<file>] [--force] [--remote=<url>] [--push]\n";
+
 
 $option{bundle} &&= File::Spec->rel2abs( $option{bundle} );
 
@@ -313,6 +317,12 @@ if ( $option{bundle} ) {
     else {
         die "File $option{bundle} already exists, use --force to overwrite\n";
     }
+}
+
+# push to remote
+if( $option{push} && $option{remote} ) {
+    $r->run( remote => add => origin => $option{remote} );
+    $r->run( push => qw( --all --force origin ) );
 }
 
 # gitk
