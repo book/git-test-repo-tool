@@ -85,7 +85,7 @@ sub commit {
     $r->run( config => 'i18n.commitencoding', $arg{commit_encoding} )
         if $arg{commit_encoding};
     $arg{code}->();
-    $r->run( config => qw( --unset i18n.commitencoding iso-8859-1 ) )
+    $r->run( qw( config --unset i18n.commitencoding ), $arg{commit_encoding} )
         if $arg{commit_encoding};
 
     # record the description
