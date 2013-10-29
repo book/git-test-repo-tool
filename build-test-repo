@@ -18,13 +18,12 @@ my %option = (
 GetOptions( \%option, 'verbose', 'gitk', 'bundle=s', 'force', 'readme', 'remote=s', 'push' )
     or die "Usage: $0 [--verbose] [--gitk] [--bundle=<file>] [--force] [--remote=<url>] [--push]\n";
 
-
 $option{bundle} &&= File::Spec->rel2abs( $option{bundle} );
 
 # check if we have a recent enough git
 my $version = Git::Repository->version;
 die "git version 1.7.8 need for commit -S, this is only $version\n"
-    if Git::Repository->version_lt( '1.7.8' );
+    if Git::Repository->version_lt('1.7.8');
 
 # check if gpg is available
 my $gpg = eval { System::Command->new(qw( gpg --version ))->stdout->getline }
@@ -40,7 +39,7 @@ my $r = test_repository( git => { quiet => 1 } );
 
 # some settings
 $r->run( config => qw( i18n.commitencoding utf-8 ) );
-$ENV{GIT_AUTHOR_DATE} = time - 3600;
+$ENV{GIT_AUTHOR_DATE}     = time - 3600;
 $ENV{GIT_AUTHOR_NAME}     = 'Example Author';
 $ENV{GIT_AUTHOR_EMAIL}    = 'author@example.com';
 $ENV{GIT_COMMITTER_DATE}  = time;
@@ -63,6 +62,7 @@ sub update_file {
 
 # do the bookkeeping around the commit/tag creation
 my %seen;
+
 sub commit {
     my %arg = @_;
 
@@ -295,9 +295,9 @@ Here's the list of the references in the repository,
 with the details related to each of the annotated tags:
 
 README
-    print $fh "    $_\n" for
-        map { s:refs/tags/(.*):refs/tags/$1 $seen{$1}:; $_ }
-        $r->run( qw( show-ref ) );
+    print $fh "    $_\n"
+        for map { s:refs/tags/(.*):refs/tags/$1 $seen{$1}:; $_ }
+        $r->run(qw( show-ref ));
     print $fh "\n";
     close $fh;
 
@@ -313,7 +313,7 @@ README
 
 # bundle
 if ( $option{bundle} ) {
-    if( !-e $option{bundle} || $option{force} ) {
+    if ( !-e $option{bundle} || $option{force} ) {
         $r->run( bundle => create => $option{bundle} => '--all' );
     }
     else {
@@ -322,7 +322,7 @@ if ( $option{bundle} ) {
 }
 
 # push to remote
-if( $option{push} && $option{remote} ) {
+if ( $option{push} && $option{remote} ) {
     $r->run( remote => add => origin => $option{remote} );
     $r->run( push => qw( --all --force origin ) );
 }
