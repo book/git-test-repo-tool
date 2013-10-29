@@ -3,6 +3,7 @@ use strict;
 use warnings;
 use Cwd;
 use File::Spec;
+use File::Basename;
 use System::Command;
 use Git::Repository;
 use Test::Git;
@@ -30,7 +31,8 @@ my $gpg = eval { System::Command->new(qw( gpg --version ))->stdout->getline }
     or die "gpg not found in the path\n";
 
 # setup our local GnuPG environment
-$ENV{GNUPGHOME} = File::Spec->catfile( getcwd(), 'gnupg' );
+$ENV{GNUPGHOME}
+    = File::Spec->rel2abs( File::Spec->catdir( dirname($0), 'gnupg' ) );
 my $keyid = '7621C403';
 
 # setup a test repository
