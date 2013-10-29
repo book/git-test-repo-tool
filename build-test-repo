@@ -8,6 +8,7 @@ use System::Command;
 use Git::Repository;
 use Test::Git;
 use Getopt::Long;
+use Pod::Usage;
 use Encode;
 use utf8;
 
@@ -15,8 +16,14 @@ use utf8;
 my %option = (
    remote => 'git@github.com:book/git-test-repository.git',
 );
-GetOptions( \%option, 'verbose', 'gitk', 'bundle=s', 'force', 'readme', 'remote=s', 'push' )
-    or die "Usage: $0 [--verbose] [--gitk] [--bundle=<file>] [--force] [--remote=<url>] [--push]\n";
+GetOptions(
+    \%option,   'verbose', 'readme', 'gitk', 'bundle=s', 'force',
+    'remote=s', 'push',    'help',   'manual'
+) or pod2usage( -verbose => 1, -exitval => 2, );
+
+# simple on-line help
+pod2usage( -verbose => 1 ) if $option{help};
+pod2usage( -verbose => 2 ) if $option{manual};
 
 $option{bundle} &&= File::Spec->rel2abs( $option{bundle} );
 
@@ -335,3 +342,58 @@ if ( $option{gitk} ) {
     chdir $home;
 }
 
+__END__
+
+=head1 NAME
+
+build-test-repo - Create a Git repository full of special cases
+
+=head1 SYNOPSIS
+
+ build-test-repo [options] [arguments]
+
+=head1 OPTIONS AND ARGUMENTS
+
+In typical L<Getopt::Long> fashion, all options can be abbreviated
+as long as the shorter version is unambiguous.
+
+=head2 Options
+
+ --verbose             Print the content of each commit and tag created
+ --readme              Print the content of the README file
+
+ --gitk                Open `gitk --all --date-order` on the repository
+
+ --bundle  <file>      Save a bundle for the repository in <file>
+ --force               Overwrite the bundle file if it already exists
+
+ --remote  <url>       Define the remote repository URL
+ --push                Push the content of the repository to the remote
+
+ --help                Print a short help summary and exit
+ --manual              Print the full manual page and exit
+
+=head1 DESCRIPTION
+
+B<build-test-repo> generates a Git repository with a number of rare cases.
+
+The program main output is a small Git bundle (currently less than 10 K)
+that can be used in a test setup.
+
+See the F<README.md> file contained in the generated repository for
+details about each commit it contains.
+
+=head1 AUTHOR
+
+Philippe Bruhat (BooK), C<< <book@cpan.org> >>.
+
+=head1 COPYRIGHT
+
+Copyright 2013 Philippe Bruhat (BooK), all rights reserved.
+
+=head1 LICENSE
+
+This program is free software; you can redistribute it and/or modify it
+under the same terms as Perl itself.
+
+=cut
