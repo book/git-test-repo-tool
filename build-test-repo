@@ -143,6 +143,7 @@ create_object(
 
 # make an encoding branch
 $r->run( branch => 'encoding' );
+$r->run( branch => 'mergetags' );
 
 create_object(
     comment => 'utf-8 content, utf-8 message',
@@ -294,7 +295,15 @@ create_object(
     }
 );
 
+$r->run( checkout => 'mergetags' );
+create_object(
+    comment => 'mergetag, mergetag',
+    code    => sub { $r->run( merge => -s => 'ours', 'v1.1.0', 'v1.0.1' ); }
+);
+
 ### final steps
+
+$r->run( checkout => 'master' );
 
 # README
 {
