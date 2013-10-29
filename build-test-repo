@@ -307,7 +307,8 @@ $r->run( checkout => 'master' );
 
 # README
 {
-    my @readme = $r->run( log => qw( --graph --pretty=oneline --decorate ) );
+    my @readme
+        = $r->run( log => qw( --graph --pretty=oneline --decorate --all ) );
     open my $fh, '>', File::Spec->catfile( $r->work_tree, 'README.md' );
     print {$fh} << 'README';
 git-test-repository
