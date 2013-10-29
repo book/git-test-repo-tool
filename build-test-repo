@@ -116,19 +116,28 @@ sub create_object {
 ### main program
 
 create_object(
-    comment => 'empty tree',
-    code    => sub {
-        my $tree = $r->run( mktree => { input => '' } );
-        my $head = $r->run( 'commit-tree', $tree, -m => 'empty tree' );
-        $r->run( 'update-ref', 'refs/heads/master' => $head );
-    }
-);
-
-create_object(
     comment => 'basic commit',
     content => "Hello\n",
     code    => sub {
         $r->run( commit => -m => 'hello (en)' );
+    }
+);
+
+create_object(
+    comment => 'empty tree, parentless',
+    code    => sub {
+        my $tree = $r->run( mktree => { input => '' } );
+        my $head = $r->run( 'commit-tree', $tree, -m => 'empty tree' );
+        $r->run( 'update-ref', 'refs/heads/slave' => $head );
+        $r->run( checkout => 'slave' );
+    }
+);
+
+$r->run( checkout => 'master' );
+create_object(
+    comment => 'basic merge',
+    code    => sub {
+        $r->run( merge => -s => ours => 'slave' );
     }
 );
 
