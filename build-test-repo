@@ -301,6 +301,15 @@ create_object(
     code    => sub { $r->run( merge => -s => 'ours', 'v1.1.0', 'v1.0.1' ); }
 );
 
+$r->run( checkout => 'slave' );
+create_object(
+    comment => 'mergetag, mergetag, gpgsig',
+    code    => sub {
+        $r->run( merge => -s => 'ours', '--no-commit', 'v1.1.0', 'v1.0.2' );
+        $r->run( commit => '-am' => 'buon giorno (it)' => "-S$keyid" );
+    }
+);
+
 ### final steps
 
 $r->run( checkout => 'master' );
