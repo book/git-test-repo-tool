@@ -257,6 +257,14 @@ create_object(
 );
 
 create_object(
+    tag     => 'v1.1.0',
+    comment => 'gpgsig',
+    code    => sub {
+        $r->run( tag => -m => 'signed tag', -u => $keyid, -s => 'v1.1.0' );
+    }
+);
+
+create_object(
     comment         => 'iso-8859-1 message, mergetag',
     commit_encoding => 'iso-8859-1',
     code            => sub {
