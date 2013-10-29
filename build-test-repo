@@ -277,7 +277,7 @@ create_object(
 );
 
 create_object(
-    comment => 'gpgsig, mergetag',
+    comment => 'mergetag, gpgsig',
     code    => sub {
         $r->run( merge => -s => 'ours', '--no-commit', 'v1.0.2' );
         $r->run( commit => -am => 'bom dia', "-S$keyid" );
