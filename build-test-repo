@@ -37,6 +37,7 @@ my $gpg = eval { System::Command->new(qw( gpg --version ))->stdout->getline }
     or die "gpg not found in the path\n";
 
 # setup our local GnuPG environment
+$ENV{LC_ALL} = 'C';
 $ENV{GNUPGHOME}
     = File::Spec->rel2abs( File::Spec->catdir( dirname($0), 'gnupg' ) );
 my $keyid = '7621C403';
