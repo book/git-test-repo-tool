@@ -67,10 +67,19 @@ sub update_file {
     $r->run( add => $file );
 }
 
-# do the bookkeeping around the commit/tag creation
+# do the bookkeeping around the object creation
 my %seen;
 
-sub commit {
+# create an object in the repository, with some extra information
+#
+# arguments:
+# - tag:              the tag name, if the object is a tag
+# - content:          the content of $file
+# - content_encoding: the encoding of $file content
+# - commit_encoding: the encoding the commit message
+# - code:             a coderef that will generate the actual object
+
+sub create_object {
     my %arg = @_;
 
     # update the file if needed
@@ -106,7 +115,7 @@ sub commit {
 
 ### main program
 
-commit(
+create_object(
     comment => 'empty tree',
     code    => sub {
         my $tree = $r->run( mktree => { input => '' } );
@@ -115,7 +124,7 @@ commit(
     }
 );
 
-commit(
+create_object(
     comment => 'basic commit',
     content => "Hello\n",
     code    => sub {
@@ -126,13 +135,13 @@ commit(
 # make an encoding branch
 $r->run( branch => 'encoding' );
 
-commit(
+create_object(
     comment => 'utf-8 content, utf-8 message',
     content => "こんにちは\n",
     code    => sub { $r->run( commit => -am => 'こんにちは (ja)' ); },
 );
 
-commit(
+create_object(
     comment => 'gpgsig',
     content => "hej\n",
     code    => sub {
@@ -142,7 +151,7 @@ commit(
 
 # now work in the encoding branch
 $r->run( checkout => 'encoding' );
-commit(
+create_object(
     comment         => 'utf-8 content, iso-8859-1 message',
     content         => "góður dagur\n",                     # utf-8
     commit_encoding => 'iso-8859-1',
@@ -153,7 +162,7 @@ commit(
     }
 );
 
-commit(
+create_object(
     comment         => 'utf-8 content, isi-8859-1 message',
     content         => "halló\n",                            # utf-8
     commit_encoding => 'iso-8859-1',
@@ -164,7 +173,7 @@ commit(
     }
 );
 
-commit(
+create_object(
     tag     => 'v1.0.0',
     comment => 'gpgsig',
     code    => sub {
@@ -172,7 +181,7 @@ commit(
     }
 );
 
-commit(
+create_object(
     comment          => 'shift-jis content, shift-jis message',
     content          => "こんにちは\n",
     content_encoding => 'shift-jis',
@@ -184,7 +193,7 @@ commit(
     }
 );
 
-commit(
+create_object(
     tag     => 'v1.0.1',
     comment => 'utf-8 message, gpgsig',
     code    => sub {
@@ -196,7 +205,7 @@ commit(
     }
 );
 
-commit(
+create_object(
     comment          => 'utf-8 content, iso-8859-1 message, gpgsig',
     content          => 'olá',
     content_encoding => 'iso-8859-1',
@@ -208,7 +217,7 @@ commit(
     }
 );
 
-commit(
+create_object(
     tag     => 'v1.0.2',
     comment => 'gpgsig',
     code    => sub {
@@ -216,7 +225,7 @@ commit(
     }
 );
 
-commit(
+create_object(
     comment => 'basic commit',
     content => "bonjour\n",
     code    => sub {
@@ -224,7 +233,7 @@ commit(
     }
 );
 
-commit(
+create_object(
     tag     => 'v1.0.3',
     comment => 'gpgsig',
     code    => sub {
@@ -233,12 +242,12 @@ commit(
 );
 
 $r->run( checkout => 'master' );
-commit(
+create_object(
     comment => 'mergetag',
     code    => sub { $r->run( merge => -s => 'ours', 'v1.0.0' ); }
 );
 
-commit(
+create_object(
     comment         => 'iso-8859-1 message, mergetag',
     commit_encoding => 'iso-8859-1',
     code            => sub {
@@ -249,7 +258,7 @@ commit(
     }
 );
 
-commit(
+create_object(
     comment => 'gpgsig, mergetag',
     code    => sub {
         $r->run( merge => -s => 'ours', '--no-commit', 'v1.0.2' );
@@ -257,7 +266,7 @@ commit(
     }
 );
 
-commit(
+create_object(
     comment         => 'iso-8859-1 message, gpgsig, mergetag',
     commit_encoding => 'iso-8859-1',
     code            => sub {
