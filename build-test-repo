@@ -374,7 +374,7 @@ if ( $option{push} && $option{remote} ) {
 if ( $option{gitk} ) {
     my $home = getcwd();
     chdir $r->work_tree;
-    `gitk --all --date-order`;
+    `gitk --all`;
     chdir $home;
 }
 
