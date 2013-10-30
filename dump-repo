@@ -72,14 +72,15 @@ sub parse_commit {
     push @{ $commit{mergetag} }, join $NL, @{ delete $commit{$_} }
         for grep /^[0-9]+$/, keys %commit;
     $commit{message} = join $NL, @lines;
-    $commit{digest} = $digest;
+    $commit{digest}  = $digest;
+    $commit{kind}    = 'commit';
 
     return \%commit;
 }
 
 sub parse_tree {
     my ( $self, $digest, $content ) = @_;
-    my %tree = ( digest => $digest, directory_entries => [] );
+    my %tree = ( digest => $digest, kind => 'tree', directory_entries => [] );
 
     while ($content) {
         my $space_index = index( $content, ' ' );
@@ -100,7 +101,9 @@ sub parse_tree {
     return \%tree;
 }
 
-sub parse_blob { return { digest => $_[1], content => $_[2] }; }
+sub parse_blob {
+    return { digest => $_[1], kind => 'blob', content => $_[2] };
+}
 
 sub parse_tag {
     my ( $self, $digest, $content ) = @_;
@@ -118,7 +121,8 @@ sub parse_tag {
     # fix the various values
     $tag{$_} &&= $tag{$_}[0] for qw( object type tag tagger );
     $tag{message} = join $NL, @lines;
-    $tag{digest} = $digest;
+    $tag{digest}  = $digest;
+    $tag{kind}    = 'tag';
 
     return \%tag;
 }
@@ -128,6 +132,6 @@ sub parse_object {
     my ( $kind, $size, $content ) = $self->get_object($digest);
     die "Object not found: $digest\n" if !defined $kind;
     my $parse = "parse_$kind";
-    return $kind => $self->$parse( $digest => $content );
+    return $self->$parse( $digest => $content );
 }
 
