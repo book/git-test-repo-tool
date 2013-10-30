@@ -1,0 +1,133 @@
+#!/usr/bin/env perl
+use strict;
+use warnings;
+use Git::Repository;    # not used for parsing
+
+# a small Git::Repository subclass to get the data out
+# in the simplest format possible
+package GitDB;
+
+our @ISA = qw( Git::Repository );
+my $NL = "\012";
+
+sub new {
+    my $class = shift;
+    my $self  = Git::Repository->new(@_);
+    $self->{__db__} = $self->command( 'cat-file', '--batch' );
+    binmode $self->{__db__}->stdout;
+    return bless $self, 'GitDB';
+}
+
+sub get_object {
+    my ( $self, $digest ) = @_;
+
+    # request the object
+    print { $self->{__db__}->stdin } $digest, "\n";
+
+    # process the reply
+    my $out = $self->{__db__}->stdout;
+    local $/ = $NL;
+    chomp( my $reply = <$out> );
+    my ( $sha1, $kind, $size ) = split / /, $reply;
+
+    # object does not exist in the git object database
+    return if $kind eq 'missing';
+
+    # read the whole content in memory at once
+    my $res = read $out, ( my $content ), $size;
+    if ( $res != $size ) {
+        $self->{__db__}->close;    # in case the exception is trapped
+        die "Read $res/$size of content from git";
+    }
+
+    # read the last byte
+    $res = read $out, ( my $junk ), 1;
+    if ( $res != 1 ) {
+        $self->{__db__}->close;    # in case the exception is trapped
+        die "Unable to finish reading content from git";
+    }
+
+    # return the data we just read
+    return $kind, $size, $content;
+}
+
+sub parse_commit {
+    my ( $self, $digest, $content ) = @_;
+    my %commit;
+
+    # parse the headers
+    my $mergetag = '0000';
+    my @lines = split $NL, $content;
+    while ( my $line = shift @lines ) {
+        my ( $key, $value ) = split / /, $line, 2;
+        $key = $mergetag++ if $key eq 'mergetag';    # multi multi-line
+        push @{ $commit{$key} }, $value;
+        $commit{''} = $commit{$key} if $key;    # deal with continuation lines
+    }
+    delete $commit{''};
+
+    # fix the various values
+    $commit{$_} &&= $commit{$_}[0] for qw( tree author committer );
+    $commit{$_} and $commit{$_} = join $NL, @{ $commit{$_} } for qw( gpgsig );
+    push @{ $commit{mergetag} }, join $NL, @{ delete $commit{$_} }
+        for grep /^[0-9]+$/, keys %commit;
+    $commit{message} = join $NL, @lines;
+    $commit{digest} = $digest;
+
+    return \%commit;
+}
+
+sub parse_tree {
+    my ( $self, $digest, $content ) = @_;
+    my %tree = ( digest => $digest, directory_entries => [] );
+
+    while ($content) {
+        my $space_index = index( $content, ' ' );
+        my $mode = substr( $content, 0, $space_index );
+        $content = substr( $content, $space_index + 1 );
+        my $null_index = index( $content, "\0" );
+        my $filename = substr( $content, 0, $null_index );
+        $content = substr( $content, $null_index + 1 );
+        my $digest = unpack( 'H*', substr( $content, 0, 20 ) );
+        $content = substr( $content, 20 );
+        push @{ $tree{directory_entries} },
+            {
+            mode     => $mode,
+            filename => $filename,
+            digest   => $digest,
+            };
+    }
+    return \%tree;
+}
+
+sub parse_blob { return { digest => $_[1], content => $_[2] }; }
+
+sub parse_tag {
+    my ( $self, $digest, $content ) = @_;
+    my %tag;
+
+    # parse the headers
+    my @lines = split $NL, $content;
+    while ( my $line = shift @lines ) {
+        my ( $key, $value ) = split / /, $line, 2;
+        push @{ $tag{$key} }, $value;
+        $tag{''} = $tag{$key} if $key;    # deal with continuation lines
+    }
+    delete $tag{''};
+
+    # fix the various values
+    $tag{$_} &&= $tag{$_}[0] for qw( object type tag tagger );
+    $tag{message} = join $NL, @lines;
+    $tag{digest} = $digest;
+
+    return \%tag;
+}
+
+sub parse_object {
+    my ( $self, $digest ) = @_;
+    my ( $kind, $size, $content ) = $self->get_object($digest);
+    die "Object not found: $digest\n" if !defined $kind;
+    my $parse = "parse_$kind";
+    return $kind => $self->$parse( $digest => $content );
+}
+
