@@ -67,7 +67,7 @@ sub parse_commit {
     delete $commit{''};
 
     # fix the various values
-    $commit{$_} &&= $commit{$_}[0] for qw( tree author committer );
+    $commit{$_} &&= $commit{$_}[0] for qw( tree author committer encoding );
     $commit{$_} and $commit{$_} = join $NL, @{ $commit{$_} } for qw( gpgsig );
     push @{ $commit{mergetag} }, join $NL, @{ delete $commit{$_} }
         for grep /^[0-9]+$/, sort keys %commit;
