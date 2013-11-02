@@ -57,7 +57,7 @@ sub parse_commit {
 
     # parse the headers
     my $mergetag = '0000';
-    my @lines = split $NL, $content;
+    my @lines = split $NL, $content, -1;
     while ( my $line = shift @lines ) {
         my ( $key, $value ) = split / /, $line, 2;
         $key = $mergetag++ if $key eq 'mergetag';    # multi multi-line
