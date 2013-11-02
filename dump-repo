@@ -70,7 +70,7 @@ sub parse_commit {
     $commit{$_} &&= $commit{$_}[0] for qw( tree author committer );
     $commit{$_} and $commit{$_} = join $NL, @{ $commit{$_} } for qw( gpgsig );
     push @{ $commit{mergetag} }, join $NL, @{ delete $commit{$_} }
-        for grep /^[0-9]+$/, keys %commit;
+        for grep /^[0-9]+$/, sort keys %commit;
     $commit{message} = join $NL, @lines;
     $commit{digest}  = $digest;
     $commit{kind}    = 'commit';
