@@ -237,10 +237,14 @@ create_object(
 );
 
 create_object(
-    comment => 'basic commit',
+    comment => 'commit with empty message',
     content => "bonjour\n",
     code    => sub {
-        $r->run( commit => -m => 'bonjour (fr)' );
+        my $tree = $r->run('write-tree');
+        my $parent = $r->run( log => -1 => '--pretty=format:%H' );
+        my $head
+            = $r->run( 'commit-tree', $tree, -p => $parent, { input => '' } );
+        $r->run( 'update-ref', 'refs/heads/encoding' => $head );
     }
 );
 
