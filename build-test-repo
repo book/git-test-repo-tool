@@ -174,7 +174,7 @@ create_object(
 );
 
 create_object(
-    comment         => 'utf-8 content, isi-8859-1 message',
+    comment         => 'utf-8 content, iso-8859-1 message',
     content         => "halló\n",                            # utf-8
     commit_encoding => 'iso-8859-1',
     code            => sub {
