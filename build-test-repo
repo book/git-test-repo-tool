@@ -134,6 +134,17 @@ create_object(
     }
 );
 
+create_object(
+    comment => 'tag pointing to a tree (the empty tree)',
+    tag     => 'empty',
+    code    => sub {
+        $r->run(
+            tag => -m => 'empty tree',
+            empty => '4b825dc642cb6eb9a060e54bf8d69288fbee4904'
+        );
+    }
+);
+
 $r->run( checkout => 'master' );
 create_object(
     comment => 'basic merge',
