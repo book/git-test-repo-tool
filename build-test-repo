@@ -118,7 +118,7 @@ sub create_object {
 
 create_object(
     comment => 'basic commit',
-    content => "Hello\n",
+    content => "Hello\n",    # e965047ad7c57865823c7d992b1d046ea66edf78
     code    => sub {
         $r->run( commit => -m => 'hello (en)' );
     }
@@ -141,6 +141,17 @@ create_object(
         $r->run(
             tag => -m => 'empty tree',
             empty => '4b825dc642cb6eb9a060e54bf8d69288fbee4904'
+        );
+    }
+);
+
+create_object(
+    comment => 'tag pointing to a blob',
+    tag     => 'hello',
+    code    => sub {
+        $r->run(
+            tag => -m => '"Hello\\n" blob',
+            hello => 'e965047ad7c57865823c7d992b1d046ea66edf78'
         );
     }
 );
