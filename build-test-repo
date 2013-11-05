@@ -117,9 +117,10 @@ sub create_object {
 ### main program
 
 create_object(
-    comment => 'basic commit',
+    comment => 'no author name',
     content => "Hello\n",    # e965047ad7c57865823c7d992b1d046ea66edf78
     code    => sub {
+        local $ENV{GIT_AUTHOR_NAME} = ' ';
         $r->run( commit => -m => 'hello (en)' );
     }
 );
