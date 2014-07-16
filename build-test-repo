@@ -91,6 +91,10 @@ sub create_object {
     # click a tick
     $ENV{GIT_AUTHOR_DATE}++;
 
+    # update the environment
+    local %ENV = %ENV;
+    $ENV{$_} = $arg{$_} for grep /GIT_/, keys %arg;
+
     # execute the coderef
     $r->run( config => 'i18n.commitencoding', $arg{commit_encoding} )
         if $arg{commit_encoding};
@@ -117,12 +121,12 @@ sub create_object {
 ### main program
 
 create_object(
-    comment => 'no author name',
+    GIT_AUTHOR_NAME => ' ',
+    comment         => 'no author name',
     content => "Hello\n",    # e965047ad7c57865823c7d992b1d046ea66edf78
     code    => sub {
-        local $ENV{GIT_AUTHOR_NAME} = ' ';
         $r->run( commit => -m => 'hello (en)' );
-    }
+    },
 );
 
 create_object(
