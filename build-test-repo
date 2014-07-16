@@ -130,6 +130,15 @@ create_object(
 );
 
 create_object(
+    GIT_AUTHOR_NAME => 'André', # utf-8
+    comment         => 'utf-8 author name, utf-8 message, utf-8 content',
+    content => "Hello Áńdŕé\n",
+    code    => sub {
+        $r->run( commit => -m => 'héllò' );
+    },
+);
+
+create_object(
     comment => 'empty tree, parentless',
     code    => sub {
         my $tree = $r->run( mktree => { input => '' } );
@@ -201,7 +210,8 @@ create_object(
 );
 
 create_object(
-    comment         => 'utf-8 content, iso-8859-1 message',
+    GIT_AUTHOR_NAME => encode( 'iso-8859-1', 'André' ),      # latin-1
+    comment         => 'utf-8 content, iso-8859-1 message and author name',
     content         => "halló\n",                            # utf-8
     commit_encoding => 'iso-8859-1',
     code            => sub {
