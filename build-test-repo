@@ -174,7 +174,9 @@ $r->run( checkout => 'master' );
 create_object(
     comment => 'basic merge',
     code    => sub {
-        $r->run( merge => -s => ours => 'slave' );
+        my @opts;
+        push @opts, '--allow-unrelated-histories' if $r->version_ge('2.9.0');
+        $r->run( merge => -s => ours => @opts, 'slave' );
     }
 );
 
